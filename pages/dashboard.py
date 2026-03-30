@@ -1,119 +1,148 @@
 import streamlit as st
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from utils.database import get_stats, get_customers, get_quotes, get_activities, log_activity
-from utils.ui_helpers import STAGE_COLORS, STAGE_ICONS, badge, apply_global_style, section_header
+from utils.database import get_stats, get_customers, get_quotes
+from utils.ui_helpers import STAGE_COLORS, STAGE_ICONS
 import datetime
 
 def show(user):
-    apply_global_style()
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+    html, body, [class*="css"], .stApp { background: #080C14 !important; font-family: 'Inter', sans-serif !important; }
+    .block-container { padding-top: 0 !important; max-width: 100% !important; }
+    #MainMenu, footer, header { visibility: hidden; }
+    [data-testid="stSidebar"] { background: #0D1117 !important; border-right: 1px solid #161b22 !important; }
+    [data-testid="stSidebar"] * { color: #8b949e !important; font-family: 'Inter', sans-serif !important; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important; color: #8b949e !important;
+        text-align: left !important; width: 100% !important;
+        border-radius: 8px !important; padding: 10px 14px !important;
+        font-size: 13px !important; font-weight: 500 !important; border: none !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover { background: rgba(255,255,255,0.05) !important; color: white !important; }
+    .stButton > button { border-radius: 8px !important; font-weight: 600 !important; font-family: 'Inter', sans-serif !important; border: 1px solid #21262d !important; background: #161b22 !important; color: #e6edf3 !important; transition: all 0.15s !important; }
+    .stButton > button:hover { background: #21262d !important; border-color: #30363d !important; }
+    .stButton > button[kind="primary"] { background: #10b981 !important; border-color: #10b981 !important; color: white !important; }
+    .stTextInput input, .stSelectbox > div > div, .stTextArea textarea, .stNumberInput input { background: #161b22 !important; border: 1px solid #30363d !important; color: #e6edf3 !important; border-radius: 8px !important; }
+    label { color: #8b949e !important; font-size: 13px !important; }
+    .stTabs [data-baseweb="tab-list"] { background: #161b22 !important; border-radius: 10px !important; padding: 4px !important; border: 1px solid #21262d !important; }
+    .stTabs [data-baseweb="tab"] { color: #8b949e !important; border-radius: 8px !important; font-weight: 600 !important; }
+    .stTabs [aria-selected="true"] { background: #21262d !important; color: #e6edf3 !important; }
+    hr { border-color: #21262d !important; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #080C14; }
+    ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 3px; }
+    @keyframes slideIn { from{transform:translateY(-16px);opacity:0} to{transform:translateY(0);opacity:1} }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    @keyframes glow { 0%,100%{box-shadow:0 0 20px rgba(16,185,129,0.2)} 50%{box-shadow:0 0 40px rgba(16,185,129,0.4)} }
+    </style>
+    """, unsafe_allow_html=True)
+
     stats = get_stats(user["id"], user["role"])
-
-    section_header("Dashboard", f"Välkommen tillbaka, {user['name'].split()[0]}! 👋")
-
-    # ── KPI CARDS ─────────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5 = st.columns(5)
-    with c1:
-        st.markdown(f"""
-        <div style="background:white;border-radius:12px;padding:18px 20px;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Kunder totalt</div>
-            <div style="font-size:30px;font-weight:800;color:#1e293b;margin-top:4px;">{stats['total_customers']}</div>
-        </div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div style="background:white;border-radius:12px;padding:18px 20px;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Offerter ute</div>
-            <div style="font-size:30px;font-weight:800;color:#3b82f6;margin-top:4px;">{stats['quotes_out']}</div>
-        </div>""", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""
-        <div style="background:white;border-radius:12px;padding:18px 20px;border:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Vunna denna månad</div>
-            <div style="font-size:30px;font-weight:800;color:#10b981;margin-top:4px;">{stats['won_month']}</div>
-        </div>""", unsafe_allow_html=True)
-    with c4:
-        val = f"{stats['pipeline_value']:,.0f} kr"
-        st.markdown(f"""
-        <div style="background:linear-gradient(135deg,#1e293b,#334155);border-radius:12px;padding:18px 20px;">
-            <div style="font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.06em;">Pipeline-värde / år</div>
-            <div style="font-size:24px;font-weight:800;color:#f59e0b;margin-top:4px;">{val}</div>
-        </div>""", unsafe_allow_html=True)
-    with c5:
-        color = "#ef4444" if stats["due_reminders"] > 0 else "#10b981"
-        st.markdown(f"""
-        <div style="background:white;border-radius:12px;padding:18px 20px;border:1px solid {'#fecaca' if stats['due_reminders']>0 else '#e2e8f0'};">
-            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;">Påminnelser</div>
-            <div style="font-size:30px;font-weight:800;color:{color};margin-top:4px;">{stats['due_reminders']}</div>
-        </div>""", unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ── PIPELINE OVERVIEW ─────────────────────────────────────────────────────
     customers = get_customers(user["id"], user["role"])
-    stage_counts = {}
-    for s in STAGE_COLORS:
-        stage_counts[s] = sum(1 for c in customers if c["status"] == s)
+    now = datetime.datetime.now()
+    greeting = "God morgon" if now.hour < 12 else "God eftermiddag" if now.hour < 17 else "God kväll"
+    first_name = user["name"].split()[0]
 
-    st.markdown("#### Pipeline-översikt")
-    cols = st.columns(len(STAGE_COLORS))
-    for i, (stage, color) in enumerate(STAGE_COLORS.items()):
+    st.markdown(f"""
+    <div style="background:linear-gradient(180deg,#0D1420 0%,#080C14 100%);border-bottom:1px solid #161b22;
+                padding:24px 32px;margin:-1rem -1rem 0;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <div style="font-size:12px;font-weight:600;color:#8b949e;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:4px;">
+                {greeting}, {first_name} 👋
+            </div>
+            <div style="font-size:24px;font-weight:800;color:#e6edf3;">Dashboard</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:#10b981;animation:pulse 2s infinite;box-shadow:0 0 6px #10b981;"></div>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#30363d;">{now.strftime('%H:%M · %d %b %Y')}</span>
+        </div>
+    </div>
+    <div style="height:28px;"></div>
+    """, unsafe_allow_html=True)
+
+    pipeline_val = stats.get('pipeline_value', 0) or 0
+    reminders = stats.get('due_reminders', 0) or 0
+
+    kpis = [
+        ("KUNDER", str(stats['total_customers']), "#3b82f6", "#0a1628", "#1e3a5f", "👥"),
+        ("OFFERTER UTE", str(stats['quotes_out']), "#f59e0b", "#1a0f00", "#4d3000", "📄"),
+        ("VUNNA / MÅN", str(stats['won_month']), "#10b981", "#071a10", "#134d2a", "🏆"),
+        ("PIPELINE / ÅR", f"{pipeline_val:,.0f} kr", "#a78bfa", "#12071a", "#3d1a7a", "💰"),
+        ("PÅMINNELSER", str(reminders), "#ef4444" if reminders > 0 else "#10b981", "#1a0707" if reminders > 0 else "#071a10", "#4d1515" if reminders > 0 else "#134d2a", "⏰"),
+    ]
+
+    cols = st.columns(5)
+    for i, (label, value, color, bg, border_c, icon) in enumerate(kpis):
         with cols[i]:
-            count = stage_counts.get(stage, 0)
+            glow = "animation:glow 3s infinite;" if i == 2 else ""
             st.markdown(f"""
-            <div style="background:white;border-radius:10px;padding:14px;text-align:center;
-                        border-top:3px solid {color};border:1px solid #e2e8f0;border-top:3px solid {color};">
-                <div style="font-size:10px;font-weight:700;color:{color};text-transform:uppercase;letter-spacing:0.06em;">{STAGE_ICONS.get(stage,'')} {stage}</div>
-                <div style="font-size:26px;font-weight:800;color:#1e293b;margin-top:4px;">{count}</div>
-            </div>""", unsafe_allow_html=True)
+            <div style="background:linear-gradient(135deg,{bg},{bg}cc);border:1px solid {border_c};border-radius:14px;padding:22px 20px;{glow}animation:slideIn {0.2+i*0.08}s ease;">
+                <div style="font-size:10px;font-weight:700;color:{color};letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;opacity:0.8;">{icon} {label}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:32px;font-weight:700;color:#e6edf3;line-height:1;">{value}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<div style='height:24px'/>", unsafe_allow_html=True)
+    st.markdown('<div style="font-size:11px;font-weight:700;color:#8b949e;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">PIPELINE ÖVERSIKT</div>', unsafe_allow_html=True)
 
-    # ── LATEST ACTIVITY + RECENT CUSTOMERS ───────────────────────────────────
-    col_left, col_right = st.columns([3, 2])
+    stage_cols = st.columns(7)
+    for i, stage in enumerate(["Ny","Kontaktad","Offert skickad","Förhandling","Bokad","Vunnen","Förlorad"]):
+        color = STAGE_COLORS.get(stage, "#64748b")
+        icon = STAGE_ICONS.get(stage, "•")
+        count = sum(1 for c in customers if c.get("status") == stage)
+        with stage_cols[i]:
+            st.markdown(f"""
+            <div style="background:#0d1117;border:1px solid #161b22;border-top:2px solid {color};border-radius:10px;padding:14px 10px;text-align:center;">
+                <div style="font-size:16px;margin-bottom:4px;">{icon}</div>
+                <div style="font-size:9px;color:#484f58;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">{stage}</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;color:#e6edf3;">{count}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:24px'/>", unsafe_allow_html=True)
+    col_left, col_right = st.columns([3, 1])
 
     with col_left:
-        st.markdown("#### Senaste kunder")
-        recent = customers[:8]
-        if recent:
-            for c in recent:
-                color = STAGE_COLORS.get(c["status"], "#64748b")
-                icon = STAGE_ICONS.get(c["status"], "•")
-                st.markdown(f"""
-                <div style="background:white;border-radius:10px;padding:12px 16px;margin-bottom:6px;
-                            border:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;">
+        st.markdown('<div style="font-size:11px;font-weight:700;color:#8b949e;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">SENASTE AKTIVITET</div>', unsafe_allow_html=True)
+        for c in customers[:8]:
+            color = STAGE_COLORS.get(c["status"], "#64748b")
+            icon = STAGE_ICONS.get(c["status"], "•")
+            updated = (c.get("updated_at") or "")[:10]
+            st.markdown(f"""
+            <div style="background:#0d1117;border:1px solid #161b22;border-radius:10px;padding:12px 16px;margin-bottom:6px;border-right:3px solid {color};">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
                     <div>
-                        <div style="font-weight:700;font-size:14px;color:#1e293b;">{c['company_name']}</div>
-                        <div style="font-size:12px;color:#64748b;">{c.get('contact_person','') or ''} · {c.get('assigned_name','') or ''}</div>
+                        <div style="font-weight:700;font-size:13px;color:#e6edf3;">{c['company_name']}</div>
+                        <div style="font-size:11px;color:#484f58;margin-top:2px;">{c.get('contact_person') or '—'} · {c.get('assigned_name') or '—'}</div>
                     </div>
-                    <span style="background:{color}20;color:{color};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">{icon} {c['status']}</span>
-                </div>""", unsafe_allow_html=True)
-        else:
-            st.info("Inga kunder ännu. Lägg till din första kund!")
+                    <div style="text-align:right;">
+                        <span style="background:{color}20;color:{color};padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;">{icon} {c['status']}</span>
+                        <div style="font-size:10px;color:#30363d;margin-top:4px;">{updated}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
     with col_right:
-        st.markdown("#### Snabbåtgärder")
-        if st.button("➕  Ny kund", use_container_width=True, type="primary"):
-            st.session_state.page = "customers"
-            st.session_state.action = "new"
-            st.rerun()
-        st.markdown("<div style='height:6px'/>", unsafe_allow_html=True)
-        if st.button("📄  Skapa offert", use_container_width=True):
-            st.session_state.page = "quotes"
-            st.rerun()
-        st.markdown("<div style='height:6px'/>", unsafe_allow_html=True)
-        if st.button("📊  Visa pipeline", use_container_width=True):
-            st.session_state.page = "pipeline"
-            st.rerun()
-        st.markdown("<div style='height:6px'/>", unsafe_allow_html=True)
-        if st.button("📈  Rapporter", use_container_width=True):
-            st.session_state.page = "reports"
-            st.rerun()
+        st.markdown('<div style="font-size:11px;font-weight:700;color:#8b949e;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:12px;">SNABBÅTGÄRDER</div>', unsafe_allow_html=True)
+        for label, page, kind in [
+            ("➕  Ny kund", "customers", "primary"),
+            ("📄  Ny offert", "quotes", "secondary"),
+            ("⚡  Säljtavla", "leaderboard", "secondary"),
+            ("🔄  Pipeline", "pipeline", "secondary"),
+            ("📈  Rapporter", "reports", "secondary"),
+        ]:
+            if st.button(label, use_container_width=True, type="primary" if kind=="primary" else "secondary", key=f"db_{page}"):
+                st.session_state.page = page
+                st.rerun()
+            st.markdown("<div style='height:4px'/>", unsafe_allow_html=True)
 
-        # Due reminders
-        if stats["due_reminders"] > 0:
-            st.markdown("<br>", unsafe_allow_html=True)
+        if reminders > 0:
             st.markdown(f"""
-            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px;">
-                <div style="font-weight:700;color:#dc2626;font-size:13px;">⏰ {stats['due_reminders']} påminnelser förfallna</div>
-                <div style="font-size:12px;color:#64748b;margin-top:4px;">Kunder väntar på uppföljning.</div>
-            </div>""", unsafe_allow_html=True)
+            <div style="background:#1a0707;border:1px solid #4d1515;border-radius:10px;padding:14px;margin-top:8px;">
+                <div style="font-weight:700;color:#ef4444;font-size:12px;">⏰ {reminders} påminnelser</div>
+                <div style="font-size:11px;color:#484f58;margin-top:4px;">Kunder väntar på uppföljning</div>
+            </div>
+            """, unsafe_allow_html=True)
