@@ -7,6 +7,10 @@ from utils.ui_helpers import apply_global_style, STAGE_COLORS
 
 # Init DB on startup
 init_db()
+from utils.database import init_invoice_tables
+try:
+    init_invoice_tables()
+except: pass
 
 st.set_page_config(
     page_title="CRM — Säljsystem",
@@ -83,6 +87,7 @@ def show_sidebar(user):
             ("customers", "👥  Kunder"),
             ("quotes", "📄  Offerter"),
             ("pipeline", "🔄  Pipeline"),
+            ("invoices", "🤖  AI Faktura"),
             ("leaderboard", "⚡  Säljtavla"),
             ("reports", "📈  Rapporter"),
         ]

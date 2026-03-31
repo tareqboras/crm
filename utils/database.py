@@ -442,3 +442,73 @@ def create_user(name, email, password, role="seller"):
     except:
         conn.close()
         return False
+
+# ── INVOICES ──────────────────────────────────────────────────────────────────
+def init_invoice_tables():
+    conn = get_conn()
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER REFERENCES customers(id) ON DELETE CASCADE,
+        filename TEXT,
+        file_path TEXT,
+        uploaded_by INTEGER REFERENCES users(id),
+        ai_analysis TEXT,
+        total_monthly REAL,
+        supplier TEXT,
+        invoice_date TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS api_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key_name TEXT,
+        key_value TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+    );
+    """)
+    conn.commit()
+    conn.close()
+
+def save_invoice(customer_id, filename, file_path, user_id, ai_analysis, total_monthly, supplier, invoice_date):
+    conn = get_conn()
+    import json
+    cur = conn.execute("""INSERT INTO invoices (customer_id, filename, file_path, uploaded_by, ai_analysis,
+                          total_monthly, supplier, invoice_date) VALUES (?,?,?,?,?,?,?,?)""",
+                       (customer_id, filename, file_path, user_id,
+                        json.dumps(ai_analysis) if isinstance(ai_analysis, dict) else ai_analysis,
+                        total_monthly, supplier, invoice_date))
+    conn.commit()
+    iid = cur.lastrowid
+    conn.close()
+    return iid
+
+def get_invoices(customer_id):
+    conn = get_conn()
+    import json
+    rows = conn.execute("SELECT * FROM invoices WHERE customer_id=? ORDER BY created_at DESC", (customer_id,)).fetchall()
+    conn.close()
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["ai_analysis"] = json.loads(d["ai_analysis"]) if d["ai_analysis"] else {}
+        except:
+            d["ai_analysis"] = {}
+        result.append(d)
+    return result
+
+def get_api_key(key_name):
+    conn = get_conn()
+    row = conn.execute("SELECT key_value FROM api_keys WHERE key_name=?", (key_name,)).fetchone()
+    conn.close()
+    return row[0] if row else ""
+
+def save_api_key(key_name, key_value):
+    conn = get_conn()
+    existing = conn.execute("SELECT id FROM api_keys WHERE key_name=?", (key_name,)).fetchone()
+    if existing:
+        conn.execute("UPDATE api_keys SET key_value=? WHERE key_name=?", (key_value, key_name))
+    else:
+        conn.execute("INSERT INTO api_keys (key_name, key_value) VALUES (?,?)", (key_name, key_value))
+    conn.commit()
+    conn.close()

@@ -38,6 +38,18 @@ def show(user):
         st.markdown("---")
         st.markdown("**Befintliga användare**")
         users = get_users()
+
+        st.markdown('---')
+        st.markdown('**🤖 AI-integration (Anthropic API)**')
+        from utils.database import get_api_key, save_api_key
+        current_key = get_api_key('anthropic')
+        with st.form('api_key_form'):
+            new_key = st.text_input('Anthropic API-nyckel', value=current_key,
+                                     type='password', placeholder='sk-ant-...')
+            st.markdown('<div style="font-size:12px;color:#64748b;">Hämta nyckel på console.anthropic.com · Krävs för AI-fakturaanalys</div>', unsafe_allow_html=True)
+            if st.form_submit_button('💾 Spara API-nyckel', type='primary'):
+                save_api_key('anthropic', new_key)
+                st.success('✅ API-nyckel sparad!')
         for u in users:
             role_color = "#3b82f6" if u["role"] == "admin" else "#10b981"
             st.markdown(f"""
